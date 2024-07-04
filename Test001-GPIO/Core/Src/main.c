@@ -108,8 +108,9 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  printf("\033[2J\n");	// [2J : clear screen 화면 초기화 (클리어)
-  printf("\033[1;1H");	// [y:xH : (x,y) 위치로 커서 이동
+  //printf("\033[2J\n");	// [2J : clear screen 화면 초기화 (클리어)
+  //printf("\033[1;1H");	// [y:xH : (x,y) 위치로 커서 이동
+  printf("\033[231:1H\n"); // 위에 2개를 합침
   /* USER CODE END 2 */
 
   /* Infinite loop */
