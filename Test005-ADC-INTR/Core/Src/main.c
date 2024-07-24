@@ -67,7 +67,8 @@ int ya[100];
 void MakeItem()
 {
 	int i;
-	srand(htim3.Instance->CNT);
+	//srand(htim3.Instance->CNT);
+	srand(hadc1.Instance->DR);
 	  for( i = 0; i <100; i++)
 	  {
 		  int v1 = rand(); // 0 ~ 2,147,483,647
@@ -78,6 +79,26 @@ void MakeItem()
 		  printf("\033[%d;%dH!", ya[i], xa[i]);
 	  }
 	  printf("\n");
+}
+int x, y=12, z, idx = 0;
+int sx=80,sy=24;
+int cx=39,cy=12;
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	//HAL_ADC_Start(&hadc1);
+	//HAL_ADC_PollForConversion(&hadc1, 1000); // start Trigger
+	int v = ((double)((HAL_ADC_GetValue(&hadc1)) / 1400)) -1;
+	if(idx == 0) x = cx + v; else y = cy + v;
+	//printf("ADC value : %d\r\n", v);
+	//HAL_Delay(200);
+	if(++idx == 2) idx = 0;
+	x = (x > 80)? 80: (x < 0) ? 0:x;
+	y = (y > 24)? 24: (y < 0) ? 0:y;
+	z = HAL_GPIO_ReadPin(Z_Axis_GPIO_Port, Z_Axis_Pin);
+}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_ADC_Start_IT(&hadc1); // one time
 }
 /* USER CODE END 0 */
 
@@ -113,50 +134,26 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
-  ProgramStart("ADC Polling");
-  HAL_TIM_Base_Start(&htim3);
+  ProgramStart("ADC - Interrupt ");
+  //HAL_ADC_Start_IT(&hadc1); // one time
+  HAL_TIM_Base_Start_IT(&htim3);
   printf("\033[2J\033[?25l\n");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  int sx=80,sy=24;
-  int cx=39,cy=12;
   MakeItem();
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, 1000); // start Trigger
-	  int v = ((double)((HAL_ADC_GetValue(&hadc1)) / 1400)) -1;
-	  int x = cx + v;
-	  x = (x > 80)? 80: (x < 0) ? 0:x;
-	  //HAL_ADC_Stop(&hadc1); // skip
-	  HAL_ADC_Start(&hadc1);
-	  HAL_ADC_PollForConversion(&hadc1, 1000); // start Trigger
-	  v = ((double)((HAL_ADC_GetValue(&hadc1)) / 1400)) -1;
-	  int y = cy +v;
-	  y = (y > 24)? 24: (y < 0) ? 0:y;
-	  //HAL_ADC_Start(&hadc1);
-	  //HAL_ADC_PollForConversion(&hadc1, 1000); // start Trigger
-	  int z = HAL_GPIO_ReadPin(Z_Axis_GPIO_Port, Z_Axis_Pin);
+	//printf("Current ADC value (%d,%d) : \r\n", x, y);
 	  printf("\033[0;0HADC Value : (%d,%d,%d)\n", x, y, z); // location info
 	  printf("\033[%d;%dH \033[%d;%dH@\033[A\n", cy, cx, y, x);
 	  cx = x; cy = y; //save current pos
-	  int x2=0, y2=0;
-	  for(int i = 0; i <20; i++)
-	  {
-		  if(x == xa[i])
-		  {
-			  for (int j = 0; j < 10; j++)
-			  {
-				  if(y == ya[j]) printf("\033[%d;%dH ",cy, cx);
-			  }
-		  }
-	  }
+	  HAL_Delay(100);
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -249,7 +246,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_15CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -288,9 +285,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 8400-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
+  htim3.Init.Period = 2000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
